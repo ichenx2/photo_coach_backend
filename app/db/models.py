@@ -1,0 +1,1 @@
+# 定義SQLAlchemy資料表
