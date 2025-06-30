@@ -37,3 +37,6 @@ ENV/
 
 # fastapi auto-generated
 instance/
+
+# Database files
+*.db
