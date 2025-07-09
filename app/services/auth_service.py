@@ -6,7 +6,7 @@ from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passlib.context import CryptContext
-from app.schemas.user_schema import UserCreate, UserLogin
+from app.schemas.user_schema import UserCreate, UserLogin, Token
 from app.models.user import User
 
 security = HTTPBearer()
@@ -22,19 +22,21 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-def register_user(user: UserCreate, db: Session = Depends(get_db)):
+def register_user(user: UserCreate, db: Session):
     existing_user = get_user_by_username(db, user.username)
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
     hashed_password = pwd_context.hash(user.password)
     new_user = create_user(db, user.username, user.email, hashed_password)
-    return create_access_token({"sub": new_user.username})
+    access_token = create_access_token({"sub": str(new_user.id)})
+    return Token(access_token=access_token, token_type="bearer")
 
-def authenticate_user(user: UserLogin, db: Session = Depends(get_db)):
+def authenticate_user(user: UserLogin, db: Session):
     db_user = get_user_by_email(db, user.email)
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         return None
-    return create_access_token({"sub": db_user.username})
+    access_token = create_access_token({"sub": str(db_user.id)})
+    return Token(access_token=access_token, token_type="bearer")
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
