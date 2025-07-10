@@ -1,1 +1,0 @@
-# 串接 OpenAI、Midjourney，回傳ai分析結果
