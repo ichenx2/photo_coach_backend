@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from app.schemas.ai_schema import AIChatRequest, AIChatResponse
 from app.services.ai_service import chat_with_gemini
+from app.schemas.ai_schema import AIKeywordRequest, AIKeywordResponse
+from app.services.ai_service import generate_keywords_from_subtopics
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
@@ -13,5 +15,10 @@ async def ai_chat(req: AIChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-
+@router.post("/keywords", response_model=AIKeywordResponse)
+async def generate_keywords(req: AIKeywordRequest):
+    try:
+        result = await generate_keywords_from_subtopics(req.sub_topics)
+        return AIKeywordResponse(visual_keywords=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
