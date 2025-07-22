@@ -2,7 +2,7 @@
 from sqlalchemy.orm import Session
 from app.db.feedback_crud import create_feedback
 from app.schemas.feedback_schema import FeedbackCreate, FeedbackResponse
-from app.services.ai_services import analyze_image
+from app.services.ai_analysis_services import analyze_image
 
 def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) -> FeedbackResponse:
     """
