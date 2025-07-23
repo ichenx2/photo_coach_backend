@@ -7,6 +7,11 @@ class AIChatRequest(BaseModel):
 class AIChatResponse(BaseModel):
     reply: str
     sub_topics: List[str]
-    visual_keywords: List[str]
     moodboard_url: Optional[str] = None
     itinerary: Optional[List[Dict[str, Any]]] = None
+
+class AIKeywordRequest(BaseModel):
+    sub_topics: List[str]
+
+class AIKeywordResponse(BaseModel):
+    visual_keywords: List[str]
