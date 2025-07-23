@@ -1,15 +1,21 @@
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Dict, List, Any
 from datetime import datetime
+
+class FeedbackContentAnalysis(BaseModel):
+    ai_score: str 
+    highlight: str
+    tip: str
+    suggestion: str
+    challenge: str
+    completed_subtasks: List[str]
 
 class FeedbackCreate(BaseModel):
     """
     Schema for creating feedback.
     """
     photo_id: str
-    ai_score: int
-    content_analysis: Dict[str, str]
-    techniques: Optional[str]
+    content_analysis: FeedbackContentAnalysis
 
 class FeedbackResponse(BaseModel):
     """
@@ -17,10 +23,9 @@ class FeedbackResponse(BaseModel):
     """
     id: int
     photo_id: str
-    ai_score: int
-    content_analysis: Dict[str, str]
-    techniques: Optional[str]
+    content_analysis: Dict[str, Any]
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        'from_attributes': True  
+    }

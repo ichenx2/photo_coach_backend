@@ -1,10 +1,11 @@
 # 取得拍照建議、回饋紀錄儲存等
 from sqlalchemy.orm import Session
 from app.db.feedback_crud import create_feedback
-from app.schemas.feedback_schema import FeedbackCreate, FeedbackResponse
+from app.models.feedback import Feedback
+from app.schemas.feedback_schema import FeedbackCreate
 from app.services.ai_analysis_services import analyze_image
 
-def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) -> FeedbackResponse:
+def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) -> Feedback:
     """
     Analyze a photo and store feedback in the database.
     :param photo_id: Unique identifier for the photo
@@ -22,17 +23,17 @@ def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) ->
     # Step 2: Prepare feedback data
     feedback_data = FeedbackCreate(
         photo_id=photo_id,
-        ai_score=analysis_result.get('ai_score', 0),
         content_analysis={
-            "highlight": analysis_result.get("highlight", ""),
-            "challenge": analysis_result.get("challenge", ""),
-            "tip": analysis_result.get("tip", ""),
-            "suggestion": analysis_result.get("suggestion", "")
+            "ai_score": analysis_result.get('ai_score', '0.0'),
+            "highlight": analysis_result.get("highlight", "無"),
+            "tip": analysis_result.get("tip", "無"),
+            "suggestion": analysis_result.get("suggestion", "無"),
+            "challenge": analysis_result.get("challenge", "無"),
+            "completed_subtasks": analysis_result.get("completed_subtasks", [])
         },
-        techniques=analysis_result.get("techniques")
     )
 
     # Step 3: Store feedback in the database
     feedback = create_feedback(db, feedback_data)
 
-    return FeedbackResponse.from_orm(feedback)
+    return feedback

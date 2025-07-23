@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.services.feedback_service import analyze_and_store_feedback
 from app.schemas.feedback_schema import FeedbackResponse
 from app.db.database import get_db
-from app.utils.response_utils import create_response
 
 UPLOAD_DIR = "uploads"  # 確保資料夾存在
 
@@ -34,7 +33,7 @@ async def analyze_photo(file: UploadFile = File(...), db: Session = Depends(get_
         analysis_result = analyze_and_store_feedback(photo_id, photo_data, db)
 
         # Step 5: 回傳分析結果
-        return analysis_result
+        return FeedbackResponse.model_validate(analysis_result)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing photo: {str(e)}")
