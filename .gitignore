@@ -40,3 +40,6 @@ instance/
 
 # Database files
 *.db
+
+# Static files
+uploads/
