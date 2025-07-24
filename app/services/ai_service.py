@@ -72,10 +72,11 @@ async def chat_with_gemini(user_input: str) -> dict:
             "itinerary": None,
         }
 
-async def generate_keywords_from_subtopics(sub_topics: list[str]) -> list[str]:
+async def generate_keywords_from_subtopics(main_topic: str, sub_topics: list[str]) -> list[str]:
     try:
         prompt = f"""
-        根據以下拍攝子主題：{sub_topics}
+        請根據使用者想拍攝的主題「{main_topic}」，以及以下子主題：
+        {sub_topics}
 
         請你延伸出約 6 個具體、精準、可視化的關鍵字，適合用來在圖庫網站（如 Pexels）搜尋圖片，用於製作多元風格的 moodboard。
 
@@ -108,3 +109,75 @@ async def generate_keywords_from_subtopics(sub_topics: list[str]) -> list[str]:
         print(f"generate_keywords_from_subtopics 發生錯誤：{e}")
         return []
 
+async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) -> list[dict]:
+
+    try:
+        prompt = f"""
+        請根據使用者想拍攝的主題「{main_topic}」，以及以下延伸子主題：
+        {sub_topics}
+
+        請為每個子主題產出一個具體的拍攝任務建議，並為該任務指派一個最合適的主題分類。請遵守以下要求：
+
+        【拍攝任務內容】
+        - 每個子主題產出一句清楚具體的拍攝建議，形式為「可執行的拍攝指令」，如：「從低角度拍攝海浪撞擊岩石，強調動態感」。
+        - 每句建議應具體描述畫面內容、拍攝角度、構圖方式、主體動作或氛圍等。
+        - 避免冗長敘述或寫成散文風格，也不要只給出關鍵詞，盡量保持在一句話的長度。
+
+        【分類標籤指派】
+        請從以下分類中**擇一最適合的標籤**，作為該任務的主題類別，並根據每類的重點進行判斷：
+
+        1. **人像**：拍攝人或人物互動（如寫真、情緒捕捉、生活情境），重視表情、眼神與人物姿態。
+        2. **食物**：聚焦於餐點擺盤與色彩、細節呈現，常見於咖啡廳、餐廳、美食相關主題。
+        3. **街拍**：在城市街道中捕捉日常場景、人群、交通或建物組合，強調瞬間與節奏感。
+        4. **風景**：拍攝自然景觀或城市風景（如山、海、夕陽、街道遠景），重視構圖層次與光線時間變化。
+        5. **靜物**：靜止物品特寫（如書籍、飾品、商品），強調物件擺放、光影與質感。
+        6. **建築**：明確以建物為主體，強調透視、線條、對稱與外觀造型。
+        7. **動物**：捕捉寵物或野生動物，重點為動態、神情或互動。
+        8. **旅拍**：整合風景、人像或街拍，呈現旅行情境與完整故事性，帶有記錄旅程氛圍。
+
+        【回傳格式】
+        請**只**回傳一段符合以下格式的 JSON，不要加入自然語言說明或 Markdown 語法：
+
+        ```json
+        {{
+            "tasks": [
+                {{
+                    "main_topic": "咖啡廳",
+                    "tasks": [
+                        {{ "tag": "食物", "content": "從俯角拍攝一杯拉花咖啡，突顯拉花圖案與桌面質感" }},
+                        {{ "tag": "建築", "content": "站在對街拍攝咖啡廳的整體外觀與店招，呈現空間風格" }}
+                    ]
+                }},
+                {{
+                    "main_topic": "日本街景",
+                    "tasks": [
+                        {{ "tag": "街拍", "content": "捕捉行人穿越斑馬線的瞬間，呈現城市節奏感" }},
+                        {{ "tag": "風景", "content": "在黃昏時拍攝便利商店街角，營造暖色調氛圍" }},
+                        {{ "tag": "街拍", "content": "使用對角線構圖呈現延伸感，捕捉街道上的日常風貌" }}
+                    ]
+                }}
+            ]
+        }}
+        """
+
+        response = model.generate_content(prompt)
+        clean_json = extract_json_block(response.text.strip())
+        result = json.loads(clean_json)
+        
+        flat_tasks = []
+        first_topic = result.get("tasks", [])[0] if result.get("tasks") else {}
+
+        topic_name = first_topic.get("main_topic", main_topic)  
+        for task in first_topic.get("tasks", []):
+            flat_tasks.append({
+                "sub_topic": topic_name,
+                "tag": task.get("tag", ""),
+                "task": task.get("content", "")
+            })
+
+        return flat_tasks
+
+
+    except Exception as e:
+        print(f"generate_tasks_from_subtopics 發生錯誤：{e}")
+        return []
