@@ -11,7 +11,16 @@ class AIChatResponse(BaseModel):
     itinerary: Optional[List[Dict[str, Any]]] = None
 
 class AIKeywordRequest(BaseModel):
+    main_topic: str
     sub_topics: List[str]
 
 class AIKeywordResponse(BaseModel):
     visual_keywords: List[str]
+
+class AIGeneratedTask(BaseModel):
+    sub_topic: str
+    task: str
+    tag: str
+
+class AIGeneratedTaskList(BaseModel):
+    tasks: List[AIGeneratedTask]
