@@ -30,12 +30,14 @@ async def chat_with_gemini(user_input: str) -> dict:
         我希望你針對使用者提供的主題 "{user_input}" 回傳以下資訊：
 
         1. 子主題（sub_topics）：給我3個與主題相關的拍攝子主題，適合用來當作選項顯示給使用者參考，字數盡量不要超過5個字，簡短明瞭即可，所生成的子主題之間重複性也不要太高。
-        
-        請回傳 JSON 格式如下：
+        2. 主題簡化（main_topic）：請你判斷使用者輸入的文字核心主題為何，並簡化為1個可以用來代表整體拍攝主題的詞（如「日本街景」、「咖啡廳」、「山景露營」等）。
+
+        請回傳以下 JSON 格式，必須包含這三個欄位：
         ```json
         {{
-        "reply": "...", 
-        "sub_topics": ["...", "..."],
+        "main_topic": "...",
+        "reply": "...",
+        "sub_topics": ["...", "...", "..."]
         }}
         """
         response = model.generate_content(prompt)
@@ -60,6 +62,7 @@ async def chat_with_gemini(user_input: str) -> dict:
 
         return {
             "reply": result.get("reply", ""),
+            "main_topic": result.get("main_topic", user_input),
             "sub_topics": subs,
             "itinerary": result.get("itinerary", None),
         }
@@ -68,6 +71,7 @@ async def chat_with_gemini(user_input: str) -> dict:
         print(f"Gemini 發生錯誤：{e}")
         return {
             "reply": "抱歉，AI 回覆時發生錯誤。",
+            "main_topic": result.get("main_topic", user_input),
             "sub_topics": [],
             "itinerary": None,
         }
@@ -135,28 +139,65 @@ async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) 
         7. **動物**：捕捉寵物或野生動物，重點為動態、神情或互動。
         8. **旅拍**：整合風景、人像或街拍，呈現旅行情境與完整故事性，帶有記錄旅程氛圍。
 
+        【欄位補充說明】
+        請在每個任務中加入以下 4 個拍攝建議欄位（每個欄位的內容含標點符號字數不超過13字）：
+
+        - "suggested_position"：建議站位（如站在巷口、低角度仰拍）
+        - "lighting_condition"：建議光線條件（如黃昏順光、陰天柔光）
+        - "shooting_technique"：推薦拍攝手法（如引導線構圖、淺景深）
+        - "recommended_time"：適合拍攝時段（如清晨、人潮多時）
+
+        請確保這四個欄位皆存在。
+
         【回傳格式】
         請**只**回傳一段符合以下格式的 JSON，不要加入自然語言說明或 Markdown 語法：
 
         ```json
         {{
+        "tasks": [
+            {{
+            "main_topic": "咖啡廳",
             "tasks": [
                 {{
-                    "main_topic": "咖啡廳",
-                    "tasks": [
-                        {{ "tag": "食物", "content": "從俯角拍攝一杯拉花咖啡，突顯拉花圖案與桌面質感" }},
-                        {{ "tag": "建築", "content": "站在對街拍攝咖啡廳的整體外觀與店招，呈現空間風格" }}
-                    ]
+                "tag": "食物",
+                "content": "從俯角拍攝一杯拉花咖啡，突顯拉花圖案與桌面質感",
+                "suggested_position": "站在桌子正上方往下拍攝",
+                "lighting_condition": "柔和室內自然光",
+                "shooting_technique": "使用大光圈營造淺景深，突出拉花細節",
+                "recommended_time": "白天有自然光時"
                 }},
                 {{
-                    "main_topic": "日本街景",
-                    "tasks": [
-                        {{ "tag": "街拍", "content": "捕捉行人穿越斑馬線的瞬間，呈現城市節奏感" }},
-                        {{ "tag": "風景", "content": "在黃昏時拍攝便利商店街角，營造暖色調氛圍" }},
-                        {{ "tag": "街拍", "content": "使用對角線構圖呈現延伸感，捕捉街道上的日常風貌" }}
-                    ]
+                "tag": "建築",
+                "content": "站在對街拍攝咖啡廳的整體外觀與店招，呈現空間風格",
+                "suggested_position": "對街正面站位，微仰角",
+                "lighting_condition": "順光或陰天皆可",
+                "shooting_technique": "使用對稱構圖，保留建築完整形狀",
+                "recommended_time": "上午或黃昏光線柔和時"
                 }}
             ]
+            }},
+            {{
+            "main_topic": "日本街景",
+            "tasks": [
+                {{
+                "tag": "街拍",
+                "content": "捕捉行人穿越斑馬線的瞬間，呈現城市節奏感",
+                "suggested_position": "從人行道邊緣拍攝",
+                "lighting_condition": "自然光，傍晚最佳",
+                "shooting_technique": "使用快門先決模式捕捉移動感",
+                "recommended_time": "下午 5 點前後"
+                }},
+                {{
+                "tag": "風景",
+                "content": "在黃昏時拍攝便利商店街角，營造暖色調氛圍",
+                "suggested_position": "站在街角十字路口往內拍攝",
+                "lighting_condition": "黃昏逆光",
+                "shooting_technique": "使用暖色白平衡與水平構圖",
+                "recommended_time": "日落前後約 5–6 點"
+                }}
+            ]
+            }}
+        ]
         }}
         """
 
@@ -172,7 +213,11 @@ async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) 
             flat_tasks.append({
                 "sub_topic": topic_name,
                 "tag": task.get("tag", ""),
-                "task": task.get("content", "")
+                "task": task.get("content", ""),
+                "suggested_position": task.get("suggested_position", ""),
+                "lighting_condition": task.get("lighting_condition", ""),
+                "shooting_technique": task.get("shooting_technique", ""),
+                "recommended_time": task.get("recommended_time", ""),
             })
 
         return flat_tasks
