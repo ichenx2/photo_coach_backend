@@ -1,6 +1,8 @@
 import os
 import json
+import random
 from dotenv import load_dotenv
+from typing import Optional
 from app.services.moodboard_service import create_moodboard_from_keywords
 import google.generativeai as genai
 import re
@@ -24,26 +26,64 @@ def extract_json_block(text: str) -> str:
     match = re.search(r"\{[\s\S]*\}", text)
     return match.group(0) if match else "{}"
 
-async def chat_with_gemini(user_input: str) -> dict:
+async def chat_with_gemini(user_input: str, place_type: Optional[str] = None) -> dict:
     try:
-        prompt = f"""
-        我希望你針對使用者提供的主題 "{user_input}" 回傳以下資訊：
+        # print(f'[DEBUG] place_type = {place_type!r}')
+        
+        place_type_instruction_map = {
+            "tourist_attraction": "你現在在觀光景點，請從建築、地標、人流、環境氛圍等角度規劃拍攝。",
+            "cafe": "你現在在咖啡廳，請著重於光影、咖啡、座位、擺設與空間氛圍的拍攝。",
+            "book_store": "你現在在書店，適合拍攝書架細節、閱讀場景與文藝氣息。",
+            "art_gallery": "你現在在藝術空間，請著重於展品、裝置藝術與場地氛圍的捕捉。",
+            "park": "你現在在公園，建議拍攝自然景觀、人與自然互動、小徑延伸等。",
+            "store": "你現在在特色小店，可以拍商品陳列、空間裝飾與店主互動。",
+            "restaurant": "你現在在餐廳，請拍餐點擺盤、用餐場景與內部裝潢。",
+            "subway_station": "你現在在街景或車站，適合拍攝人流、建築線條與城市節奏。",
+        }
 
-        1. 子主題（sub_topics）：給我3個與主題相關的拍攝子主題，適合用來當作選項顯示給使用者參考，字數盡量不要超過5個字，簡短明瞭即可，所生成的子主題之間重複性也不要太高。
-        2. 主題簡化（main_topic）：請你判斷使用者輸入的文字核心主題為何，並簡化為1個可以用來代表整體拍攝主題的詞（如「日本街景」、「咖啡廳」、「山景露營」等）。
+        if place_type and place_type in place_type_instruction_map:
+            type_instruction = place_type_instruction_map[place_type]
+            prompt = f"""
+            我希望你針對使用者選擇的主題 "{place_type}" 產生：
+            - 子主題（sub_topics）：給我3個與主題相關的拍攝子主題，適合用來當作選項顯示給使用者參考，字數盡量不要超過5個字，簡短明瞭即可，所生成的子主題之間重複性也不要太高，可以參考類型描述：{type_instruction}。
 
-        請回傳以下 JSON 格式，必須包含這三個欄位：
-        ```json
-        {{
-        "main_topic": "...",
-        "reply": "...",
-        "sub_topics": ["...", "...", "..."]
-        }}
-        """
+            再來，請根據使用者提供的主題 "{user_input}" 以及{place_type}產生：
+            - 主題簡化（main_topic）：請你判斷使用者輸入的文字核心主題為何，這個主題的place_type是{place_type}，並簡化為1個可以用來代表整體拍攝主題的詞（如「日本街景」、「咖啡廳」、「山景露營」等）。
+
+            最後產生回覆說明（reply）：請先給予鼓勵回覆，再用 1–2 句話簡單並簡短說明這個主題的拍攝重點或靈感，例如可以聚焦的元素、構圖方式或氛圍設定，幫助使用者理解怎麼拍會好看。
+
+            請回傳以下 JSON 格式：
+            ```json
+            {{
+            "main_topic": "...",         
+            "reply": "...",              
+            "sub_topics": ["...", "...", "..."]
+            }}
+            """
+        else:
+            prompt = f"""
+            我希望你針對使用者提供的主題 "{user_input}" 回傳以下資訊：
+
+            1. 子主題（sub_topics）：給我3個與主題相關的拍攝子主題，適合用來當作選項顯示給使用者參考，字數盡量不要超過5個字，簡短明瞭即可，所生成的子主題之間重複性也不要太高。
+            2. 主題簡化（main_topic）：請你判斷使用者輸入的文字核心主題為何，並簡化為1個可以用來代表整體拍攝主題的詞（如「日本街景」、「咖啡廳」、「山景露營」等）。
+            3. 回覆說明（reply）：請用 1–2 句話簡單並簡短說明這個主題的拍攝重點或靈感，例如可以聚焦的元素、構圖方式或氛圍設定，幫助使用者理解怎麼拍會好看。
+
+            請回傳以下 JSON 格式，必須包含這三個欄位：
+            ```json
+            {{
+            "main_topic": "...",
+            "reply": "...",
+            "sub_topics": ["...", "...", "..."]
+            }}
+            """
+
+
+        # print(prompt)
+
         response = model.generate_content(prompt)
         clean_json = extract_json_block(response.text.strip())
         result = json.loads(clean_json)
-        print("JSON 處理後結果：", json.dumps(result, indent=2, ensure_ascii=False)) #debug用
+        # print("JSON 處理後結果：", json.dumps(result, indent=2, ensure_ascii=False)) #debug用
 
         subs = result.get("sub_topics", [])
         if isinstance(subs, str):
@@ -82,7 +122,7 @@ async def generate_keywords_from_subtopics(main_topic: str, sub_topics: list[str
         請根據使用者想拍攝的主題「{main_topic}」，以及以下子主題：
         {sub_topics}
 
-        請你延伸出約 6 個具體、精準、可視化的關鍵字，適合用來在圖庫網站（如 Pexels）搜尋圖片，用於製作多元風格的 moodboard。
+        請你延伸出約 6 個具體、精準、可視化的關鍵字，適合用來在圖庫網站（如 Pexels）搜尋圖片，用於製作多元風格的 moodboard（以sub_topics)為主。
 
         請注意：
         - 回傳的名詞或短語必須清晰可視化，適合搜尋實體圖片（例如 "sunset beach", "vintage cafe", "wooden table"）
@@ -156,7 +196,7 @@ async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) 
         {{
         "tasks": [
             {{
-            "main_topic": "咖啡廳",
+            "main_topic": "...",
             "tasks": [
                 {{
                 "tag": "食物",
@@ -177,29 +217,30 @@ async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) 
             ]
             }},
             {{
-            "main_topic": "日本街景",
+            "main_topic": "...",
             "tasks": [
                 {{
-                "tag": "街拍",
-                "content": "捕捉行人穿越斑馬線的瞬間，呈現城市節奏感",
-                "suggested_position": "從人行道邊緣拍攝",
-                "lighting_condition": "自然光，傍晚最佳",
-                "shooting_technique": "使用快門先決模式捕捉移動感",
-                "recommended_time": "下午 5 點前後"
+                "tag": "...",
+                "content": "...",
+                "suggested_position": "...",
+                "lighting_condition": "...",
+                "shooting_technique": "...",
+                "recommended_time": "..."
                 }},
                 {{
-                "tag": "風景",
-                "content": "在黃昏時拍攝便利商店街角，營造暖色調氛圍",
-                "suggested_position": "站在街角十字路口往內拍攝",
-                "lighting_condition": "黃昏逆光",
-                "shooting_technique": "使用暖色白平衡與水平構圖",
-                "recommended_time": "日落前後約 5–6 點"
+                "tag": "...",
+                "content": "...",
+                "suggested_position": "...",
+                "lighting_condition": "...",
+                "shooting_technique": "...",
+                "recommended_time": "..."
                 }}
             ]
             }}
         ]
         }}
         """
+
 
         response = model.generate_content(prompt)
         clean_json = extract_json_block(response.text.strip())
