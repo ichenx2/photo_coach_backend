@@ -28,7 +28,7 @@ def extract_json_block(text: str) -> str:
 
 async def chat_with_gemini(user_input: str, place_type: Optional[str] = None) -> dict:
     try:
-        print(f'[DEBUG] place_type = {place_type!r}')
+        # print(f'[DEBUG] place_type = {place_type!r}')
         
         place_type_instruction_map = {
             "tourist_attraction": "你現在在觀光景點，請從建築、地標、人流、環境氛圍等角度規劃拍攝。",
@@ -78,12 +78,12 @@ async def chat_with_gemini(user_input: str, place_type: Optional[str] = None) ->
             """
 
 
-        print(prompt)
+        # print(prompt)
 
         response = model.generate_content(prompt)
         clean_json = extract_json_block(response.text.strip())
         result = json.loads(clean_json)
-        print("JSON 處理後結果：", json.dumps(result, indent=2, ensure_ascii=False)) #debug用
+        # print("JSON 處理後結果：", json.dumps(result, indent=2, ensure_ascii=False)) #debug用
 
         subs = result.get("sub_topics", [])
         if isinstance(subs, str):
