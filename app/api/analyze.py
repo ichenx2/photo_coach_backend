@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.services.auth_service import get_current_user
 from app.models.user import User
 
+from app.services.technique_service import analyze_image_techniques
+
 from app.services.feedback_service import analyze_and_store_feedback
 from app.schemas.feedback_schema import FeedbackResponse
 from app.db.database import get_db
@@ -13,6 +15,15 @@ from app.db.database import get_db
 UPLOAD_DIR = "uploads"  # 確保資料夾存在
 
 router = APIRouter()
+
+@router.post("/techniques")
+async def analyze_techniques(file: UploadFile = File(...)):
+    """
+    上傳照片 -> LLM (Gemini Vision) 判斷攝影技巧
+    """
+    photo_data = await file.read()
+    result = analyze_image_techniques(photo_data)
+    return result
 
 @router.post("/feedback", response_model=FeedbackResponse)
 async def analyze_photo(
@@ -44,3 +55,5 @@ async def analyze_photo(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing photo: {str(e)}")
+
+
