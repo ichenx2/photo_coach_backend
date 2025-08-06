@@ -3,6 +3,7 @@ from typing import List, Optional, Dict, Any
 
 class AIChatRequest(BaseModel):
     prompt: str
+    place_type: Optional[str] = None
 
 class AIChatResponse(BaseModel):
     reply: str
