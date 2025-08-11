@@ -11,11 +11,25 @@ def get_user_skills_with_names(user_id: int, db: Session) -> list[UserSkillOut]:
         .all()
     )
 
+    updated_records = []
+    for r in records:
+        # 如果進度滿 1，自動升級並重置進度
+        if r.progress >= 1:
+            r.level += 1
+            r.progress = 0
+            db.add(r)
+            updated_records.append(r)
+
+    # 如果有更新等級或進度，儲存到資料庫
+    if updated_records:
+        db.commit()
+
     return [
         UserSkillOut(
             skill_id=r.skill_id,
             skill_name=r.skill.name,
-            progress=r.progress
+            progress=r.progress,
+            level=r.level 
         )
         for r in records
     ]

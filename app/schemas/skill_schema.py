@@ -13,6 +13,7 @@ class UserSkillOut(BaseModel):
     skill_id: int
     skill_name: str
     progress: float
+    level: int
 
     class Config:
         orm_mode = True

@@ -9,6 +9,8 @@ class LearningRecord(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     skill_id = Column(Integer, ForeignKey("skills.id"), nullable=False)
     progress = Column(Float, default=0.0)
+    level = Column(Integer, default=1) 
+
 
     __table_args__ = (UniqueConstraint('user_id', 'skill_id', name='_user_skill_uc'),)
     skill = relationship("Skill") 
