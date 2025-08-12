@@ -1,5 +1,7 @@
 from pydantic import BaseModel, condecimal
 from typing import Optional
+from typing import Dict, List
+
 
 class SkillOut(BaseModel):
     id: int
@@ -27,3 +29,5 @@ class UpdateProgress(BaseModel):
                 "progress": 0.5
             }
         }
+class PhotoProgressIn(BaseModel):
+    photo_result: Dict[str, List[str]]
