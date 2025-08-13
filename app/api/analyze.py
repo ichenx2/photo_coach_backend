@@ -41,7 +41,9 @@ async def get_feedback(
         # Step 3: 執行分析 + 儲存分析紀錄
         analysis_result = analyze_and_store_feedback(photo.id, photo_data, db, user_id=current_user.id)
 
-        # Step 4: 回傳分析結果
+        # Step 4: 執行分析 + 儲存分析紀錄
+        analysis_result = analyze_and_store_feedback(photo_id, photo_data, db, user_id=current_user.id)
+
         return FeedbackResponse.model_validate(analysis_result)
 
     except Exception as e:
