@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from app.db.feedback_crud import create_feedback
 from app.models.feedback import Feedback
 from app.schemas.feedback_schema import FeedbackCreate
-from app.services.ai_analysis_services import analyze_image
+from app.services.ai_analysis_service import analyze_image
 
-def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) -> Feedback:
+def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session, user_id: int) -> Feedback:
     """
     Analyze a photo and store feedback in the database.
     :param photo_id: Unique identifier for the photo
@@ -34,6 +34,6 @@ def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session) ->
     )
 
     # Step 3: Store feedback in the database
-    feedback = create_feedback(db, feedback_data)
+    feedback = create_feedback(db, feedback_data, user_id=user_id)
 
     return feedback
