@@ -1,46 +1,66 @@
-# 取得拍照建議、回饋紀錄儲存等
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 
 load_dotenv()
-
-genai.configure(api_key=os.getenv("GOOGLE_API_KEY")) #測試用
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 TEMPLATE = """
-請模仿以下的評論風格，針對一張攝影作品產出完整的回饋建議。語氣請保持:絕對的客觀、專業、有趣，可以帶一點小諷刺，內容結構如下：
-注意，務必要遵守，語句要自然順暢，回答請簡短且明瞭
+請依據收到的攝影分析結果，客觀且專業地產出一段完整的回饋建議，語氣保持專業、溫和但直接，避免過度主觀或空泛的讚美。
+內容需依照以下邏輯撰寫成一段話（不要分段）：
 
-1. 依照所收到的分析結果，敘述該照片有甚麼
-2. 若是有值得稱讚的點，可以給予認可和鼓勵
-3. 若是畫面中有待改進的部分，則具體說明有那裡可以改進，不用客氣，直接說出不好的點有助於成長
-4. 提供實用的改進方法（明確且可執行）
+1. 根據 observation，精確描述照片的主體、背景、光線方向與品質、拍攝視角。
+2. 根據 techniques，指出照片運用了哪些攝影技巧（構圖技巧、光線運用、拍攝角度）。
+3. 若有值得稱讚的地方，簡短給予肯定與鼓勵。
+4. 若有不足之處，具體指出問題點，避免籠統描述。
+5. 提供明確、可執行的改善方法，讓拍攝者下次能嘗試。
 
-請使用繁體中文回答。
+請用繁體中文輸出，不要使用條列式或編號，整合成流暢的一段評論。
 
-【拍攝亮點】
-{highlight}
+【分析觀察】
+{observation
 
-【可改進之處】
-{challenge}
+【攝影技巧】
+構圖技巧：{composition}
+光線運用：{lighting}
+拍攝角度：{angle}
+""".strip()
 
-【學習提示】
-{tip}
 
-【建議任務挑戰】
-{suggestion}
-"""
+def _safe_join(items):
+    if not items:
+        return "（未提供）"
+    return "；".join([str(x) for x in items if str(x).strip()])
 
 
 def generate_feedback(data: dict) -> str:
+    """
+    data 期待的新格式：
+    {
+        "observation": [...],
+        "techniques": {
+            "構圖技巧": [...],
+            "光線運用": [...],
+            "拍攝角度": [...]
+        }
+    }
+    """
+    observations = data.get("observation", []) or []
+    techniques = data.get("techniques", {}) or {}
+
+    composition = techniques.get("構圖技巧", []) or []
+    lighting    = techniques.get("光線運用", []) or []
+    angle       = techniques.get("拍攝角度", []) or []
+
     prompt = TEMPLATE.format(
-        highlight=data["highlight"],
-        challenge=data["challenge"],
-        tip=data["tip"],
-        suggestion=data["suggestion"]
-    ).strip()
+        observation=_safe_join(observations),
+        composition="、".join(composition) if composition else "（未偵測）",
+        lighting="、".join(lighting) if lighting else "（未偵測）",
+        angle="、".join(angle) if angle else "（未偵測）",
+    )
+
 
     model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(prompt)
 
-    return response.text.strip()
+    return (response.text or "").strip() or "目前無法產出回饋內容，請稍後再試。"

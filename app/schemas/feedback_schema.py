@@ -1,11 +1,15 @@
-# 分析回饋資料的request/response結構
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import List
 
-class AnalysisInput(BaseModel):
-    highlight: str
-    challenge: str
-    tip: str
-    suggestion: str
+class Techniques(BaseModel):
+    構圖技巧: List[str] = Field(default_factory=list)
+    光線運用: List[str] = Field(default_factory=list)
+    拍攝角度: List[str] = Field(default_factory=list)
 
-class FeedbackOutput(BaseModel):
+class FeedbackIn(BaseModel):
+    observation: List[str] = Field(default_factory=list)
+    techniques: Techniques
+
+class FeedbackOut(BaseModel):
     feedback: str
+
