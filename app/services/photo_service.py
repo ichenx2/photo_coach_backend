@@ -1,29 +1,35 @@
 # 圖片上傳、圖片格式處理等
 import os
 import uuid
-import shutil
-from fastapi import UploadFile
+from pathlib import Path
+
 from sqlalchemy.orm import Session
 from app.models.photo import Photo
+from app.schemas.photo_schema import PhotoIn
+from app.db.photo_crud import create_photo
 
-UPLOAD_DIR = "static/uploads"
+UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-async def save_uploaded_photo(file: UploadFile, user_id: int, topic: str, db: Session):
-    ext = file.filename.split('.')[-1]
-    filename = f"{uuid.uuid4().hex}.{ext}"
-    file_path = os.path.join(UPLOAD_DIR, filename)
-    file_path = file_path.replace("\\", "/")
+def save_uploaded_photo(photo_data: bytes, filename: str, user_id: int, subtask_id: int, db: Session) -> Photo:
 
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    # Step 1: 產生唯一 photo_id（UUID）
+    photo_id = f"{uuid.uuid4().hex}{Path(filename).suffix}"
+    photo_path = os.path.join(UPLOAD_DIR, photo_id)
 
-    new_photo = Photo(
+    # Step 2: 儲存圖片
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    with open(photo_path, "wb") as f:
+        f.write(photo_data)
+
+    # Step 3: 儲存圖片資訊到資料庫
+    photo = create_photo(db, PhotoIn(
         user_id=user_id,
-        topic=topic,
-        file_path=file_path
-    )
-    db.add(new_photo)
-    db.commit()
-    db.refresh(new_photo)
-    return new_photo
+        subtask_id=subtask_id, 
+        file_path=photo_path 
+    ))
+
+    return photo
+    
+    
+

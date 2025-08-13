@@ -2,9 +2,17 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+
+class PhotoIn(BaseModel):
+    user_id: int
+    subtask_id: int
+    file_path: str
+
+    class Config:
+        orm_mode = True
+
 class PhotoOut(BaseModel):
     id: int
-    topic: str
     file_path: str
     created_at: datetime
 

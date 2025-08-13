@@ -2,8 +2,8 @@ from sqlalchemy.orm import Session
 from app.models.feedback import Feedback
 from app.schemas.feedback_schema import FeedbackCreate
 
-def create_feedback(db: Session, feedback_in: FeedbackCreate, user_id: int):
-    feedback = Feedback(**feedback_in.dict(), user_id=user_id) 
+def create_feedback(db: Session, feedback_in: FeedbackCreate):
+    feedback = Feedback(**feedback_in.model_dump(), user_id=user_id)
     db.add(feedback)
     db.commit()
     db.refresh(feedback)
