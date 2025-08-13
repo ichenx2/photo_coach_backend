@@ -14,7 +14,7 @@ class FeedbackCreate(BaseModel):
     """
     Schema for creating feedback.
     """
-    photo_id: str
+    photo_id: int
     content_analysis: FeedbackContentAnalysis
 
 class FeedbackResponse(BaseModel):
@@ -22,7 +22,7 @@ class FeedbackResponse(BaseModel):
     Schema for feedback response.
     """
     id: int
-    photo_id: str
+    photo_id: int
     content_analysis: Dict[str, Any]
     created_at: datetime
 

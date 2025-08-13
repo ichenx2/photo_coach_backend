@@ -3,7 +3,7 @@ from app.models.feedback import Feedback
 from app.schemas.feedback_schema import FeedbackCreate
 
 def create_feedback(db: Session, feedback_in: FeedbackCreate):
-    feedback = Feedback(**feedback_in.dict())
+    feedback = Feedback(**feedback_in.model_dump())
     db.add(feedback)
     db.commit()
     db.refresh(feedback)
