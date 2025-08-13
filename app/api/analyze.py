@@ -1,18 +1,24 @@
-import uuid, os
-from pathlib import Path
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from sqlalchemy.orm import Session
 
-from app.services.feedback_service import analyze_and_store_feedback
-from app.schemas.feedback_schema import FeedbackResponse
 from app.db.database import get_db
+from app.models.photo import Photo
+from app.models.user import User
+from app.schemas.feedback_schema import FeedbackResponse
+from app.services.auth_service import get_current_user
+from app.services.photo_service import save_uploaded_photo
+from app.services.feedback_service import analyze_and_store_feedback
 
-UPLOAD_DIR = "uploads"  # 確保資料夾存在
 
 router = APIRouter()
 
 @router.post("/feedback", response_model=FeedbackResponse)
-async def analyze_photo(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def get_feedback(
+    file: UploadFile = File(...), 
+    subtask_id: int = Form(...),
+    current_user: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
     Analyze uploaded photo, store the image and analysis result.
     """
@@ -20,20 +26,14 @@ async def analyze_photo(file: UploadFile = File(...), db: Session = Depends(get_
         # Step 1: 讀取圖片資料
         photo_data = await file.read()
 
-        # Step 2: 產生唯一 photo_id（UUID）
-        photo_id = f"{uuid.uuid4().hex}{Path(file.filename).suffix}"
-        photo_path = os.path.join(UPLOAD_DIR, photo_id)
+        # Step 2: 儲存圖片
+        photo = save_uploaded_photo(photo_data, file.filename, current_user.id, subtask_id, db)
 
-        # Step 3: 儲存圖片
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        with open(photo_path, "wb") as f:
-            f.write(photo_data)
+        # 執行分析 + 儲存分析紀錄
+        analysis_result = analyze_and_store_feedback(photo.id, photo_data, db)
 
-        # Step 4: 執行分析 + 儲存分析紀錄
-        analysis_result = analyze_and_store_feedback(photo_id, photo_data, db)
-
-        # Step 5: 回傳分析結果
-        return FeedbackResponse.model_validate(analysis_result)
+        # 回傳分析結果
+        return analysis_result
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing photo: {str(e)}")

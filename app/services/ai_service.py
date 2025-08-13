@@ -245,16 +245,15 @@ async def generate_tasks_from_subtopics(main_topic: str, sub_topics: list[str]) 
         response = model.generate_content(prompt)
         clean_json = extract_json_block(response.text.strip())
         result = json.loads(clean_json)
-        
+        print(result)  # debug用
         flat_tasks = []
         first_topic = result.get("tasks", [])[0] if result.get("tasks") else {}
-
         topic_name = first_topic.get("main_topic", main_topic)  
         for task in first_topic.get("tasks", []):
             flat_tasks.append({
                 "sub_topic": topic_name,
                 "tag": task.get("tag", ""),
-                "task": task.get("content", ""),
+                "content": task.get("content", ""),
                 "suggested_position": task.get("suggested_position", ""),
                 "lighting_condition": task.get("lighting_condition", ""),
                 "shooting_technique": task.get("shooting_technique", ""),
