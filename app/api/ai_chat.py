@@ -1,16 +1,23 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.models.user import User
+from app.services.auth_service import get_current_user
+from app.db.database import get_db
 from app.schemas.ai_schema import AIChatRequest, AIChatResponse
 from app.services.ai_service import chat_with_gemini
 from app.schemas.ai_schema import AIKeywordRequest, AIKeywordResponse
 from app.services.ai_service import generate_keywords_from_subtopics
+from app.schemas.ai_schema import AIGeneratedTaskList, AIKeywordRequest
+from app.services.ai_service import generate_tasks_from_subtopics
+from app.services.task_service import generate_and_store_task
+from app.schemas.task_schema import TaskResponse
 
 router = APIRouter(prefix="/ai", tags=["AI"])
 
 @router.post("/chat", response_model=AIChatResponse)
 async def ai_chat(req: AIChatRequest):
     try:
-        result = await chat_with_gemini(req.prompt)
+        result = await chat_with_gemini(req.prompt, place_type=req.place_type)
         return AIChatResponse(**result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -18,7 +25,16 @@ async def ai_chat(req: AIChatRequest):
 @router.post("/keywords", response_model=AIKeywordResponse)
 async def generate_keywords(req: AIKeywordRequest):
     try:
-        result = await generate_keywords_from_subtopics(req.sub_topics)
+        result = await generate_keywords_from_subtopics(req.main_topic, req.sub_topics)
         return AIKeywordResponse(visual_keywords=result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/tasks", response_model=TaskResponse)
+async def generate_tasks(req: AIKeywordRequest, current_user: int = 1, db: Session = Depends(get_db)):
+    try:
+       tasks = await generate_and_store_task(current_user, req.main_topic, req.sub_topics, db)
+       return tasks
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -2,6 +2,12 @@ import os
 from dotenv import load_dotenv
 import google.generativeai as genai
 
+from sqlalchemy.orm import Session
+from app.db.feedback_crud import create_feedback
+from app.models.feedback import Feedback
+from app.schemas.feedback_schema import FeedbackCreate
+from app.services.ai_analysis_service import analyze_image
+
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
@@ -18,7 +24,7 @@ TEMPLATE = """
 請用繁體中文輸出，不要使用條列式或編號，整合成流暢的一段評論。
 
 【分析觀察】
-{observation
+{observation}
 
 【攝影技巧】
 構圖技巧：{composition}
@@ -35,15 +41,7 @@ def _safe_join(items):
 
 def generate_feedback(data: dict) -> str:
     """
-    data 期待的新格式：
-    {
-        "observation": [...],
-        "techniques": {
-            "構圖技巧": [...],
-            "光線運用": [...],
-            "拍攝角度": [...]
-        }
-    }
+    根據 observation + techniques 產出 Gemini 攝影建議回饋
     """
     observations = data.get("observation", []) or []
     techniques = data.get("techniques", {}) or {}
@@ -59,8 +57,38 @@ def generate_feedback(data: dict) -> str:
         angle="、".join(angle) if angle else "（未偵測）",
     )
 
-
     model = genai.GenerativeModel("gemini-1.5-flash")
     response = model.generate_content(prompt)
 
     return (response.text or "").strip() or "目前無法產出回饋內容，請稍後再試。"
+
+
+def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session, user_id: int) -> Feedback:
+    """
+    分析照片並儲存回饋
+    :param photo_id: Unique identifier for the photo
+    :param photo_data: Binary data of the photo
+    :param db: Database session
+    :param user_id: 使用者 ID
+    :return: Feedback 資料（已儲存）
+    """
+    
+    analysis_result = analyze_image(photo_data)
+
+    if 'error' in analysis_result:
+        raise ValueError(f"Image analysis failed: {analysis_result['error']}")
+
+    feedback_data = FeedbackCreate(
+        photo_id=photo_id,
+        content_analysis={
+            "ai_score": analysis_result.get('ai_score', '0.0'),
+            "highlight": analysis_result.get("highlight", "無"),
+            "tip": analysis_result.get("tip", "無"),
+            "suggestion": analysis_result.get("suggestion", "無"),
+            "challenge": analysis_result.get("challenge", "無"),
+            "completed_subtasks": analysis_result.get("completed_subtasks", [])
+        },
+    )
+
+    feedback = create_feedback(db, feedback_data, user_id=user_id)
+    return feedback
