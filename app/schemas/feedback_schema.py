@@ -26,6 +26,7 @@ class FeedbackCreate(BaseModel):
     """
     Schema for creating feedback.
     """
+    user_id: int
     photo_id: int
     content_analysis: FeedbackContentAnalysis
 

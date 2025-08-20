@@ -79,6 +79,7 @@ def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session, us
         raise ValueError(f"Image analysis failed: {analysis_result['error']}")
 
     feedback_data = FeedbackCreate(
+        user_id=user_id,
         photo_id=photo_id,
         content_analysis={
             "ai_score": analysis_result.get('ai_score', '0.0'),
@@ -90,5 +91,7 @@ def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session, us
         },
     )
 
-    feedback = create_feedback(db, feedback_data, user_id=user_id)
+    # Step 3: Store feedback in the database
+    feedback = create_feedback(db, feedback_data)
+
     return feedback
