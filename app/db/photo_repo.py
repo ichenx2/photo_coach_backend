@@ -1,7 +1,8 @@
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.db.feedback_table import Photo, PhotoAnalysis
+from app.models.photo import Photo
+from app.models.feedback import Feedback
 import json
 
 def create_photo(db: Session, image_url: str, thumbnail_url: Optional[str], captured_at: Optional[datetime]) -> str:
@@ -22,9 +23,9 @@ def upsert_analysis(db: Session, photo_id: str, observation: List[str], techniqu
     }
 
     now = datetime.utcnow()
-    rec = db.get(PhotoAnalysis, photo_id)
+    rec = db.get(Feedback, photo_id)
     if rec is None:
-        rec = PhotoAnalysis(
+        rec = Feedback(
             photo_id=photo_id,
             observation_json=json.dumps(obs, ensure_ascii=False),
             techniques_json=json.dumps(tech, ensure_ascii=False),
@@ -44,20 +45,18 @@ def get_photo_detail(db: Session, photo_id: str) -> Optional[Dict[str, Any]]:
     p = db.get(Photo, photo_id)
     if not p:
         return None
-    analysis = None
-    if p.analysis:
-        analysis = {
-            "observation": json.loads(p.analysis.observation_json),
-            "techniques": json.loads(p.analysis.techniques_json),
-            "updated_at": _dt_or_none(p.analysis.updated_at),
+    feedback = None
+    if p.feedback:
+        feedback = {
+            "observation": json.loads(p.feedback.observation_json),
+            "techniques": json.loads(p.feedback.techniques_json),
+            "updated_at": _dt_or_none(p.feedback.updated_at),
         }
     return {
         "id": p.id,
-        "image_url": p.image_url,
-        "thumbnail_url": p.thumbnail_url,
-        "captured_at": _dt_or_none(p.captured_at),
+        "file_path": p.file_path,
         "created_at": _dt_or_none(p.created_at),
-        "analysis": analysis,
+        "feedback": feedback,
     }
 
 def list_photos(db: Session, limit: int, offset: int) -> Dict[str, Any]:
