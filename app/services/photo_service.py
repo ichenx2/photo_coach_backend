@@ -1,10 +1,12 @@
 # 圖片上傳、圖片格式處理等
 import os
 import uuid
-import shutil
-from fastapi import UploadFile
+from pathlib import Path
+
 from sqlalchemy.orm import Session
 from app.models.photo import Photo
+from app.schemas.photo_schema import PhotoIn
+from app.db.photo_crud import create_photo
 
 # 使用絕對路徑，與 main.py 中的 STATIC_DIR 保持一致
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,7 +23,9 @@ async def save_uploaded_photo(file: UploadFile, user_id: int, subtask_id: int, d
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    new_photo = Photo(
+
+    # Step 3: 儲存圖片資訊到資料庫
+    photo = create_photo(db, PhotoIn(
         user_id=user_id,
         subtask_id=subtask_id,
         file_path=filename  # 儲存完整的 URL 路徑
