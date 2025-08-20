@@ -1,10 +1,10 @@
 # 圖片上傳、圖片格式處理等
 import os
 import uuid
-from pathlib import Path
+import shutil
+from fastapi import UploadFile
 
 from sqlalchemy.orm import Session
-from app.models.photo import Photo
 from app.schemas.photo_schema import PhotoIn
 from app.db.photo_crud import create_photo
 
@@ -28,9 +28,9 @@ async def save_uploaded_photo(file: UploadFile, user_id: int, subtask_id: int, d
         user_id=user_id,
         subtask_id=subtask_id,
         file_path=filename  # 儲存完整的 URL 路徑
-    )
-    db.add(new_photo)
+    ))
+    db.add(photo)
     db.commit()
-    db.refresh(new_photo)
+    db.refresh(photo)
 
-    return new_photo
+    return photo
