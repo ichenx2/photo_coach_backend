@@ -1,16 +1,25 @@
 import os
+
 from fastapi import FastAPI
-from app.api import ping, auth, analyze
-from app.api import task
 from fastapi.staticfiles import StaticFiles
-from app.db.database import engine
-from app.models.user import Base
-# 導入所有模型以確保它們被註冊到 SQLAlchemy
+from dotenv import load_dotenv
+
+load_dotenv()
+
+from app.db.database import engine, Base, SessionLocal
+
 from app.models import User, Task, SubTask, Photo
+
+from app.api import ping, auth, analyze, task, nearby
+
 from app.api.ai_chat import router as ai_router
 from app.api.pexels import router as moodboard_router
-from app.api import nearby
+from app.api.feedback import router as feedback_router
+from app.api.photo_feedback import router as photos_router
 from app.api.photo import router as photo_router
+
+import app.db.feedback_table
+
 
 app = FastAPI()
 Base.metadata.create_all(bind=engine)
@@ -25,9 +34,8 @@ app.include_router(task.router, prefix="/tasks", tags=["Tasks"])
 app.include_router(photo_router, prefix="/photo", tags=["Photo"])
 app.include_router(ai_router)
 app.include_router(moodboard_router)
+app.include_router(feedback_router, prefix="/api")
+app.include_router(photos_router, prefix="/api")
 app.include_router(nearby.router)
 app.mount("/uploads", StaticFiles(directory=os.path.join(STATIC_DIR, "uploads")), name="uploads")
-
-
-
 

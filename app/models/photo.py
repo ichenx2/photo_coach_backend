@@ -10,6 +10,7 @@ class Photo(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     subtask_id = Column(Integer, ForeignKey("subtasks.id"))
     file_path = Column(String, nullable=False)
+    topic = Column(String, nullable=True)  # 可保留作搜尋/標記用途
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="photos")
