@@ -4,7 +4,6 @@ from datetime import datetime
 
 class PhotoOut(BaseModel):
     id: int
-    topic: str
     file_path: str
     created_at: datetime
 

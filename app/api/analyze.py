@@ -25,21 +25,22 @@ async def analyze_techniques(file: UploadFile = File(...)):
 async def get_feedback(
     file: UploadFile = File(...), 
     subtask_id: int = Form(...),
-    current_user: int = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Analyze uploaded photo, store the image and analysis result.
     """
     try:
-        # Step 1: 讀取圖片資料
+        # Step 1: 先儲存圖片（在讀取內容之前）
+        photo = await save_uploaded_photo(file, current_user.id, subtask_id, db)
+        
+        # Step 2: 重置文件指標並讀取圖片資料用於分析
+        file.file.seek(0)
         photo_data = await file.read()
 
-        # Step 2: 儲存圖片
-        photo = save_uploaded_photo(photo_data, file.filename, current_user.id, subtask_id, db)
-
         # Step 3: 執行分析 + 儲存分析紀錄
-        analysis_result = analyze_and_store_feedback(photo.id, photo_data, db, user_id=current_user.id)
+        analysis_result = analyze_and_store_feedback(photo.id, photo_data, db, current_user.id)
 
         # Step 4: 回傳分析結果
         return FeedbackResponse.model_validate(analysis_result)

@@ -12,6 +12,7 @@ class Task(Base):
     image_url = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    user = relationship("User", back_populates="tasks")
     subtasks = relationship("SubTask", back_populates="task", cascade="all, delete")
 
 class SubTask(Base):
@@ -27,5 +28,5 @@ class SubTask(Base):
     recommended_time = Column(String)
     is_completed = Column(Boolean, default=False)
 
-    photos = relationship("Photo", back_populates="subtask")
     task = relationship("Task", back_populates="subtasks")
+    photo = relationship("Photo", back_populates="subtask")

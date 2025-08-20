@@ -9,7 +9,7 @@ from typing import List
 
 router = APIRouter()
 
-@router.post("/photo/upload")
+@router.post("/upload")
 async def upload_photo(
     file: UploadFile = File(...),
     user_id: int = Form(...),
@@ -19,7 +19,7 @@ async def upload_photo(
     photo = await save_uploaded_photo(file, user_id, topic, db)
     return {"message": "上傳成功", "photo_id": photo.id, "file_path": photo.file_path}
 
-@router.get("/photo/user/{user_id}", response_model=List[PhotoOut])
+@router.get("/user/{user_id}", response_model=List[PhotoOut])
 def get_user_photos(user_id: int, db: Session = Depends(get_db)):
     return db.query(Photo).filter(Photo.user_id == user_id).order_by(Photo.created_at.desc()).all()
 
@@ -29,7 +29,6 @@ def get_user_photos(user_id: int, db: Session = Depends(get_db)):
 from fastapi import HTTPException
 
 # 修改
-@router.put("/photo/{photo_id}")
 # def update_photo_file_path(photo_id: int, file_path: str, db: Session = Depends(get_db)):
 #     photo = db.query(Photo).filter(Photo.id == photo_id).first()
 #     if not photo:
@@ -40,31 +39,21 @@ from fastapi import HTTPException
 #     db.refresh(photo)
 #     return {"message": "更新成功", "photo_id": photo.id, "new_path": photo.file_path}
 
-def update_photo_topic(photo_id: int, topic: str, db: Session = Depends(get_db)):
+# 刪除
+@router.delete("/{photo_id}")
+def delete_photo(photo_id: int, db: Session = Depends(get_db)):
     photo = db.query(Photo).filter(Photo.id == photo_id).first()
     if not photo:
-        raise HTTPException(status_code=404, detail="Photo not found")
+        raise HTTPException(status_code=404, detail="找不到這張照片")
 
-    photo.topic = topic
+    # 若需要一併刪除實體圖片檔案：
+    try:
+        import os
+        if os.path.exists(photo.file_path):
+            os.remove(photo.file_path)
+    except Exception as e:
+        print(f"刪檔失敗: {e}")
+
+    db.delete(photo)
     db.commit()
-    db.refresh(photo)
-    return {"message": "更新成功", "photo_id": photo.id, "new_topic": photo.topic}
-
-# 刪除
-# @router.delete("/photo/{photo_id}")
-# def delete_photo(photo_id: int, db: Session = Depends(get_db)):
-#     photo = db.query(Photo).filter(Photo.id == photo_id).first()
-#     if not photo:
-#         raise HTTPException(status_code=404, detail="找不到這張照片")
-
-#     # 若需要一併刪除實體圖片檔案：
-#     try:
-#         import os
-#         if os.path.exists(photo.file_path):
-#             os.remove(photo.file_path)
-#     except Exception as e:
-#         print(f"刪檔失敗: {e}")
-
-#     db.delete(photo)
-#     db.commit()
-#     return {"message": "照片已刪除"}
+    return {"message": "照片已刪除"}

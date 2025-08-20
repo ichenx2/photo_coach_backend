@@ -32,7 +32,7 @@ async def generate_keywords(req: AIKeywordRequest):
 
 
 @router.post("/tasks", response_model=TaskResponse)
-async def generate_tasks(req: AIKeywordRequest, current_user: int = 1, db: Session = Depends(get_db)):
+async def generate_tasks(req: AIKeywordRequest, current_user: User = Depends(get_current_user) , db: Session = Depends(get_db)):
     try:
        tasks = await generate_and_store_task(current_user, req.main_topic, req.sub_topics, db)
        return tasks
