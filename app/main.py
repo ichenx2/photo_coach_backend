@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from app.db.database import engine, Base, SessionLocal
+from app.db.database import engine, Base
 
 from app.models import User, Task, SubTask, Photo
 
@@ -17,8 +17,6 @@ from app.api.pexels import router as moodboard_router
 from app.api.feedback import router as feedback_router
 from app.api.photo_feedback import router as photos_router
 from app.api.photo import router as photo_router
-
-import app.db.feedback_table
 
 
 app = FastAPI()
