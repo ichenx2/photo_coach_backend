@@ -93,5 +93,3 @@ def analyze_and_store_feedback(photo_id: str, photo_data: bytes, db: Session, us
 
     # Step 3: Store feedback in the database
     feedback = create_feedback(db, feedback_data)
-
-    return feedback

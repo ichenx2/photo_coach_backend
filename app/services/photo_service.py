@@ -23,7 +23,6 @@ async def save_uploaded_photo(file: UploadFile, user_id: int, subtask_id: int, d
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-
     # Step 3: 儲存圖片資訊到資料庫
     photo = create_photo(db, PhotoIn(
         user_id=user_id,
